@@ -9,17 +9,44 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd /var/www/backend
-          git pull origin main
-          npm install
-          pm2 restart backend
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Deploy to EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USER }}
+          KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          # Configurar SSH
+          mkdir -p ~/.ssh
+          echo "${KEY}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Crear directorio si no existe
+          echo "Preparing backend directory..."
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
+            mkdir -p /var/www/backend
+            cd /var/www/backend
+          "
+          
+          echo "Copying files to EC2..."
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv package.json package-lock.json ${USERNAME}@${HOST}:/var/www/backend/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv src ${USERNAME}@${HOST}:/var/www/backend/
+          
+          # Si tienes otros archivos necesarios, agrégalos aquí
+          # scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv dist ${USERNAME}@${HOST}:/var/www/backend/
+          
+          echo "Installing dependencies and restarting PM2..."
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
+            cd /var/www/backend
+            npm install --production
+            pm2 restart backend || pm2 start npm --name backend -- start
+          "
+          
+          echo "Deploy completed successfully!"
