@@ -28,19 +28,18 @@ jobs:
           echo "${KEY}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           
-          # Crear directorio si no existe
+          # Crear directorio
           echo "Preparing backend directory..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
-            mkdir -p /var/www/backend
-            cd /var/www/backend
-          "
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "mkdir -p /var/www/backend"
           
-          echo "Copying files to EC2..."
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv package.json package-lock.json ${USERNAME}@${HOST}:/var/www/backend/
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv src ${USERNAME}@${HOST}:/var/www/backend/
-          
-          # Si tienes otros archivos necesarios, agrégalos aquí
-          # scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv dist ${USERNAME}@${HOST}:/var/www/backend/
+          # Copiar TODO el contenido excepto node_modules y .git
+          echo "Copying all files to EC2..."
+          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env' \
+            ./ ${USERNAME}@${HOST}:/var/www/backend/
           
           echo "Installing dependencies and restarting PM2..."
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
