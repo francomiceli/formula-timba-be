@@ -15,30 +15,22 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # Ajusta a tu versión
+          node-version: '20'
 
       - name: Deploy to EC2
-        env:
-          HOST: ${{ secrets.EC2_HOST }}
-          USERNAME: ${{ secrets.EC2_USER }}
-          KEY: ${{ secrets.EC2_SSH_KEY }}
-          DEST_PATH: /var/www/backend
         run: |
           # Configurar SSH
           mkdir -p ~/.ssh
-          echo "${KEY}" | tr -d '\r' > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           
           echo "Copying files to EC2..."
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv package.json package-lock.json $USERNAME@$HOST:$DEST_PATH/
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv src $USERNAME@$HOST:$DEST_PATH/
-          
-          # Copia otros archivos necesarios (ajusta según tu estructura)
-          # scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv .env.production $USERNAME@$HOST:$DEST_PATH/.env
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv package.json package-lock.json ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/backend/
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -rv src ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/backend/
           
           echo "Installing dependencies and restarting PM2..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $USERNAME@$HOST "
-            cd $DEST_PATH
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            cd /var/www/backend
             npm install --production
             pm2 restart backend || pm2 start npm --name backend -- start
           "
