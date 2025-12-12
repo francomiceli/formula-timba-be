@@ -45,7 +45,16 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
             cd /var/www/backend
             npm install --production
-            pm2 restart backend || pm2 start npm --name backend -- start
+            
+            # Intentar reiniciar, si falla, iniciar por primera vez
+            if pm2 restart backend 2>/dev/null; then
+              echo 'Backend restarted successfully'
+            else
+              echo 'Starting backend for the first time'
+              pm2 start npm --name backend -- start
+            fi
+            
+            pm2 status
           "
           
           echo "Deploy completed successfully!"
