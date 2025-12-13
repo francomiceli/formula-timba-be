@@ -22,6 +22,15 @@ jobs:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
           KEY: ${{ secrets.EC2_SSH_KEY }}
+          # Variables de entorno del backend
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
         run: |
           # Configurar SSH
           mkdir -p ~/.ssh
@@ -32,7 +41,7 @@ jobs:
           echo "Preparing backend directory..."
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "mkdir -p /var/www/backend"
           
-          # Copiar TODO el contenido excepto node_modules y .git
+          # Copiar archivos
           echo "Copying all files to EC2..."
           rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             --exclude 'node_modules' \
@@ -41,20 +50,29 @@ jobs:
             --exclude '.env' \
             ./ ${USERNAME}@${HOST}:/var/www/backend/
           
+          # Crear .env en el servidor con los secrets
+          echo "Creating .env file..."
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
+            cat > /var/www/backend/.env << EOF
+            NODE_ENV=${NODE_ENV} 
+            PORT=${PORT}
+            FRONTEND_URL=${FRONTEND_URL}
+            JWT_SECRET=${JWT_SECRET}
+            DB_HOST=${DB_HOST}
+            DB_USER=${DB_USER}
+            DB_PASSWORD=${DB_PASSWORD}
+            DB_NAME=${DB_NAME}
+            EOF
+          "
+          
+          # Instalar y reiniciar
           echo "Installing dependencies and restarting PM2..."
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
             cd /var/www/backend
             npm install --production
             
-            # Intentar reiniciar, si falla, iniciar por primera vez
-            if pm2 restart backend 2>/dev/null; then
-              echo 'Backend restarted successfully'
-            else
-              echo 'Starting backend for the first time'
-              pm2 start npm --name backend -- start
-            fi
-            
-            pm2 status
+            # Reiniciar con las nuevas variables de entorno
+            pm2 restart backend --update-env || pm2 start npm --name backend -- start
           "
           
           echo "Deploy completed successfully!"

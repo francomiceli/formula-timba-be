@@ -16,7 +16,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://apexleague.online', 'https://www.apexleague.online']
+    : 'http://localhost:9000', // Puerto de Quasar en dev
+  credentials: true
+}));
 app.use(express.json());
 
 // Rutas
