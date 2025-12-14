@@ -27,10 +27,11 @@ jobs:
           PORT: ${{ secrets.PORT }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          # Producción usa las variables PROD_*
+          PROD_DB_HOST: ${{ secrets.PROD_DB_HOST }}
+          PROD_DB_USER: ${{ secrets.PROD_DB_USER }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
         run: |
           # Configurar SSH
           mkdir -p ~/.ssh
@@ -54,14 +55,14 @@ jobs:
           echo "Creating .env file..."
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${USERNAME}@${HOST} "
             cat > /var/www/backend/.env << EOF
-            NODE_ENV=${NODE_ENV} 
+            NODE_ENV=${NODE_ENV}
             PORT=${PORT}
             FRONTEND_URL=${FRONTEND_URL}
             JWT_SECRET=${JWT_SECRET}
-            DB_HOST=${DB_HOST}
-            DB_USER=${DB_USER}
-            DB_PASSWORD=${DB_PASSWORD}
-            DB_NAME=${DB_NAME}
+            PROD_DB_HOST=${PROD_DB_HOST}
+            PROD_DB_USER=${PROD_DB_USER}
+            PROD_DB_PASSWORD=${PROD_DB_PASSWORD}
+            PROD_DB_NAME=${PROD_DB_NAME}
             EOF
           "
           
