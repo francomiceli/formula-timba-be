@@ -1,9 +1,9 @@
-import Pilot from "./models/Pilot.js";
+import Pilot from "../models/Pilot.js";
 
 const pilotsSeed = [
   { name: "Max Verstappen", team: "Red Bull", acronym: "VER", number: "3" },
   { name: "Isack Hadjar", team: "Red Bull", acronym: "HAD", number: "6" },
-  { name: "Lewis Hamilton", team: "Ferrari", acronym: "HAM" , number: "44" },
+  { name: "Lewis Hamilton", team: "Ferrari", acronym: "HAM", number: "44" },
   { name: "Charles Leclerc", team: "Ferrari", acronym: "LEC", number: "16" },
   { name: "Lando Norris", team: "McLaren", acronym: "NOR", number: "1" },
   { name: "Oscar Piastri", team: "McLaren", acronym: "PIA", number: "81" },
@@ -26,11 +26,23 @@ const pilotsSeed = [
 ];
 
 export async function seedPilots() {
+  let created = 0;
+  let existing = 0;
+
   for (const pilot of pilotsSeed) {
-    await Pilot.findOrCreate({
+    const [instance, wasCreated] = await Pilot.findOrCreate({
       where: { name: pilot.name },
       defaults: pilot,
     });
+
+    if (wasCreated) {
+      created++;
+    } else {
+      existing++;
+    }
   }
-  console.log("✅ Pilotos seed cargados");
+
+  console.log(`✅ Pilots seed: ${created} creados, ${existing} ya existían`);
 }
+
+export default pilotsSeed;
